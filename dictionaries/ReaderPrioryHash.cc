@@ -1,5 +1,4 @@
 //
-//
 
 #include "Semaphore.h"
 

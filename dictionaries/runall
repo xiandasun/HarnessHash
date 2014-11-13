@@ -1,0 +1,26 @@
+#!/bin/sh -
+
+algorithms="FairDictionary ReaderPrioryDictionary WriterPrioryDictionary SpinLockDictionary"
+if [ ${#} -ne 0 ] ; then
+    algorithms="${@}"
+fi
+
+cflag="-Wall -Werror -std=c++0x -g -O3 -DNDEBUG -fno-reorder-functions -DPIN" #
+if file /bin/cat | grep "64-bit" > /dev/null 2>&1 ; then
+    cflag="-mcx16 ${cflag}"
+fi
+
+runalgorithm() {
+    echo ${1}${2}
+    g++ ${cflag} -DDictionary=${1} Harness.cc -I${HOME}/software/boost/include -lpthread -lm
+    ./run1 ${2} > ${1}${2}
+    if [ -f core ] ; then
+	echo core generated for ${1}
+	break
+    fi
+}
+
+rm -rf core
+for algorithm in ${algorithms} ; do
+    runalgorithm ${algorithm}
+done

@@ -20,7 +20,7 @@ class Spinlock {					// SPINLOCK, with optional exponential backoff
 #endif // ! NOEXPBACK
 
 	for ( unsigned int i = 0;; i += 1 ) {
-	  if ( lock == 0 && __atomic_test_and_set( &lock, __ATOMIC_SEQ_CST ) == 0 ) break;
+	  if ( lock == 0 && __sync_bool_compare_and_swap( &lock, 0, 1 ) == 0 ) break;
 #ifndef NOEXPBACK
 	    for ( unsigned int s = 0; s < spin; s += 1 ) Pause(); // exponential spin
 	    spin += spin;				// powers of 2
@@ -30,10 +30,12 @@ class Spinlock {					// SPINLOCK, with optional exponential backoff
 	    Pause();
 #endif // ! NOEXPBACK
 	} // for
+	
+	cout << "SpinLock being acquired" << endl;
     } // Spinlock::acquire
 
     void release() {
-	__atomic_clear( &lock, __ATOMIC_SEQ_CST );
+	__sync_bool_compare_and_swap( &lock, 1, 0 );
     } // Lock::release
 
     Spinlock() : lock( 0 ) {}

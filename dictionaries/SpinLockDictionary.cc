@@ -5,7 +5,7 @@ template<typename T> class Dictionary {
 	Spinlock lock;
 	
 	std::unordered_map<unsigned int, T *> internalHashMap;
-	Dictionary(Dictionary cont &);	// prevent copying
+	Dictionary(Dictionary const &);	// prevent copying
 	void operator =(Dictionary const &);
 
   public:
@@ -19,7 +19,7 @@ template<typename T> class Dictionary {
 
 	T *tryGet(unsigned int key) {
 		lock.acquire();
-		std::unordered_map::iterator ptr = internalHashMap.find(key);
+		typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
 		return ptr == internalHashMap.end() ? 0 : ptr->second;
 	}
 };

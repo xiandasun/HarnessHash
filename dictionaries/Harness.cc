@@ -125,12 +125,14 @@ inline unsigned int nextReadKey() {
 	double r = ((double) xorshf96()) / ((double) range);
 	for (unsigned int i = 0; i < UNIVERSE_SIZE; i++)
 		if (r < CumulatedReadFrequency[i]) return i;
+	return UNIVERSE_SIZE - 1;
 } // nextReadKey
 
 inline unsigned int nextWriteKey() {
 	double r = ((double) xorshf96()) / ((double) range);
 	for (unsigned int i = 0; i < UNIVERSE_SIZE; i++)
 		if (r < CumulatedWriteFrequency[i]) return i;
+	return UNIVERSE_SIZE - 1;
 } // nextWriteKey
 
 //------------------------------------------------------------------------------
@@ -167,10 +169,11 @@ struct Reader {
 		for ( volatile unsigned int i = 0; i < This.tid * 100; i += 1 ); // random start
 
 		for ( ;; ) {
-		  if ( This.stop != 0 ) break;					// done experiment ?
+			if ( This.stop != 0 ) break;					// done experiment ?
 		  	unsigned int key = nextReadKey();
 			Node *node = This.dictionary.tryGet( key );			// get arbitrary node
-			if ( node != 0 ) {							// get get node ?
+			if ( node != 0 ) {
+				cout << "reader: key=" << key << endl;							// get get node ?
 				This.entries += 1;
 			} else {
 				This.getf += 1;							// count get failures
@@ -252,25 +255,29 @@ struct Writer {
 	}
 }; // Writer
 
+Node *Writer::entry[UNIVERSE_SIZE];
+
 //------------------------------------------------------------------------------
 
 int main( int argc, char *argv[] ) {
 	int Time = 2, Writers = 1, Readers = 16;							// default values
 
+	cout << "Time=" << Time << endl;
+
 	switch ( argc ) {									// argument check
-		case 5:
+	case 5:
 		x = atoi( argv[4] );
-		case 4:
+	case 4:
 		Readers = atoi( argv[3] );
-		case 3:
+	case 3:
 		Writers = atoi( argv[2] );
-	  case 2:
+	case 2:
 		Time = atoi( argv[1] );
 		if ( Time < 1 || Writers < 1 ) goto usage;
-	  case 1:
+	case 1:
 		break;
-	  usage:
-	  default:
+	usage:
+	default:
 		cout << "Usage: " << argv[0] << " "
 			 << Time << " (total experiment duration) "
 			 << Writers << " (Writer number) "
@@ -316,7 +323,7 @@ int main( int argc, char *argv[] ) {
 	for ( int tid = 0; tid < Writers; tid += 1 ) {
 		writer[tid]->join();
 		subtotalWrites[tid] = writer[tid]->entries;
-		totalWrites += subtotals[tid];
+		totalWrites += subtotalWrites[tid];
 		getf += writer[tid]->getf;
 	} // for
 	

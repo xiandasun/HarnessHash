@@ -1,5 +1,3 @@
-// Lock used to protect ready queue when shared access
-
 #define CACHE_ALIGN 64
 #define CALIGN __attribute__(( aligned (CACHE_ALIGN) ))
 
@@ -29,7 +27,7 @@ class Semaphore {
 			unsigned int spin = SPIN_START;
 
 			int i = S;
-			while ((S == 0) && !__sync_bool_compare_and_swap(&S, i, i - 1)) {
+			while ((S == 0) || !__sync_bool_compare_and_swap(&S, i, i - 1)) {
 				for (unsigned int w = 0; w < spin; w++) Pause();
 				spin += spin;
 				if (spin > SPIN_END) spin = SPIN_START;

@@ -65,7 +65,7 @@ void affinity( pthread_t pthreadid, unsigned int tid ) {
 	CPU_ZERO( &mask );
 	int cpu;
 
-	enum { OFFSET = 32 };								// upper range of cores away from core 0
+	enum { OFFSET = 4 };								// upper range of cores away from core 0
 	cpu = tid + OFFSET;
 
 	CPU_SET( cpu, &mask );
@@ -99,7 +99,7 @@ inline unsigned long xorshf96(void) {          //period 2^96-1
 	t = x;
 	x = y;
 	y = z;
-	z = t ^ x ^ y % range;
+	z = (t ^ x ^ y) % range;
 
 	return z >= 0 ? z : -z;
 } // xorshf96
@@ -109,15 +109,19 @@ inline unsigned long xorshf96(void) {          //period 2^96-1
 void generateZipfAccessPatterns() {
 	double sum = 0.0;
 	for (unsigned int i = 0; i < UNIVERSE_SIZE; i++) {
-		CumulatedReadFrequency[i] = 1 / ((double) i);
+		CumulatedReadFrequency[i] = 1 / ((double) i + 1.0);
 		sum += CumulatedReadFrequency[i];
 	}
-
-	double ratio = 1 / sum;
-	CumulatedReadFrequency[0] *= ratio;
+	
+	// cout << "\nsum=" << sum;
+	// double ratio = 1 / sum;
+	// cout << "\nratio=" << ratio << endl;
+	CumulatedReadFrequency[0] /= sum;
+	// cout << CumulatedReadFrequency[0] << endl;
 	for (unsigned int i = 1; i < UNIVERSE_SIZE; i++) {
-		CumulatedReadFrequency[i] = CumulatedReadFrequency[i - 1] + CumulatedReadFrequency[i] * ratio;
-		CumulatedWriteFrequency[i] = CumulatedWriteFrequency[i];
+		CumulatedReadFrequency[i] = CumulatedReadFrequency[i - 1] + CumulatedReadFrequency[i] / sum;
+		CumulatedWriteFrequency[i] = CumulatedReadFrequency[i];
+		// cout << CumulatedReadFrequency[i] << endl;
 	}
 } // generateAccessPatterns
 
@@ -129,6 +133,7 @@ inline unsigned int nextReadKey() {
 } // nextReadKey
 
 inline unsigned int nextWriteKey() {
+	return 0;
 	double r = ((double) xorshf96()) / ((double) range);
 	for (unsigned int i = 0; i < UNIVERSE_SIZE; i++)
 		if (r < CumulatedWriteFrequency[i]) return i;
@@ -173,7 +178,6 @@ struct Reader {
 		  	unsigned int key = nextReadKey();
 			Node *node = This.dictionary.tryGet( key );			// get arbitrary node
 			if ( node != 0 ) {
-				cout << "reader: key=" << key << endl;							// get get node ?
 				This.entries += 1;
 			} else {
 				This.getf += 1;							// count get failures
@@ -262,15 +266,11 @@ Node *Writer::entry[UNIVERSE_SIZE];
 int main( int argc, char *argv[] ) {
 	int Time = 2, Writers = 1, Readers = 16;							// default values
 
-	cout << "Time=" << Time << endl;
-
 	switch ( argc ) {									// argument check
-	case 5:
-		x = atoi( argv[4] );
 	case 4:
-		Readers = atoi( argv[3] );
+		Writers = atoi( argv[3] );
 	case 3:
-		Writers = atoi( argv[2] );
+		Readers = atoi( argv[2] );
 	case 2:
 		Time = atoi( argv[1] );
 		if ( Time < 1 || Writers < 1 ) goto usage;
@@ -282,12 +282,11 @@ int main( int argc, char *argv[] ) {
 			 << Time << " (total experiment duration) "
 			 << Writers << " (Writer number) "
 			 << Readers << " (Reader number) "
-			 << x << " (rand seed) "
 			 << endl;
 		exit( EXIT_FAILURE );
 	} // switch
 
-	cout << Writers << " " << Readers << " " << Time << " ";
+	cout << Readers << " " <<  Writers << " " << Time << " ";
 
 	// start up
 
@@ -361,7 +360,7 @@ int main( int argc, char *argv[] ) {
 	double stdReads = sqrt( sum / Readers );
 
 	cout << fixed << setprecision(1);
-	cout << totalReads << " " << totalWrites << " " << getf << " " << avgReads << " " << stdReads / avgReads * 100 << "%" <<  avgWrites << " " << stdWrites / avgWrites * 100 << "%" << endl;
+	cout << totalReads << " " << totalWrites << " " << getf << " " << avgReads << " " << stdReads / avgReads * 100 << "% " <<  avgWrites << " " << stdWrites / avgWrites * 100 << "%" << endl;
 
 //	cout << endl;
 //	malloc_stats();

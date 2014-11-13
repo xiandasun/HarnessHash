@@ -1,37 +1,37 @@
-#include "Semaphore.h"
+#include "SpinLock.h"
 #include <unordered_map>
 
 template<typename T> class ReaderPrioryDictionary {
-	Semaphore wrt, mutex;
+	Spinlock wrt, mutex;
 	unsigned int readercount;
 	
 	std::unordered_map<unsigned int, T *> internalHashMap;
-	Dictionary(Dictionary cont &);	// prevent copying
+	Dictionary(Dictionary const &);	// prevent copying
 	void operator =(Dictionary const &);
 
   public:
-	Dictionary() : wrt(1), mutex(1), readercount(0) {};
+	Dictionary() : wrt(), mutex(), readercount(0) {};
 
 	void put(unsigned int key, T *v) {
-		wrt.wait();
+		wrt.acquire();
 		internalHashMap[key] = v;
-		wrt.signal();
+		wrt.release();
 	}
 
 	T *tryGet(unsigned int key) {
-		mutex.wait();
+		mutex.acquire();
 		readercount++;
 		if (readercount == 1) {
-			wrt.wait();
+			wrt.acquire();
 		}
-		mutex.signal();
+		mutex.release();
 
-		std::unordered_map::iterator ptr = internalHashMap.find(key);
+		typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
 		
-		mutex.wait();
+		mutex.acquire();
 		readercount--;
-		if (readercount == 0) wrt.signal();
-		mutex.signal();
+		if (readercount == 0) wrt.release();
+		mutex.release();
 		
 		return ptr == internalHashMap.end() ? 0 : ptr->second;
 	}

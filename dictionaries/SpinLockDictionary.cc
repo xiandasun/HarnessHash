@@ -20,6 +20,7 @@ template<typename T> class Dictionary {
 	T *tryGet(unsigned int key) {
 		lock.acquire();
 		typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
+		lock.release();
 		return ptr == internalHashMap.end() ? 0 : ptr->second;
 	}
 };

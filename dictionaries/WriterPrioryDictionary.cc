@@ -1,45 +1,45 @@
-#include "Semaphore.h"
+#include "SpinLock.h"
 #include <unordered_map>
 
 template<typename T> class WriterPrioryDictionary {
-	Semaphore wrt, mutex_rdcnt, mutex_wtcnt;
+	Spinlock wrt, mutex_rdcnt, mutex_wtcnt;
 	unsigned int readercount, writercount;
 	
 	std::unordered_map<unsigned int, T *> internalHashMap;
-	Dictionary(Dictionary cont &);	// prevent copying
+	Dictionary(Dictionary const &);	// prevent copying
 	void operator =(Dictionary const &);
 
   public:
-	Dictionary() : wrt(1), mutex_rdcnt(1), mutex_wtcnt(1), readercount(0), writercount(0) {};
+	Dictionary() : wrt(), mutex_rdcnt(), mutex_wtcnt(), readercount(0), writercount(0) {};
 
 	void put(unsigned int key, T *v) {
-  		mutex_wtcnt.wait();
+  		mutex_wtcnt.acquire();
   		writercount++;
-		if (writercount == 1) wrt.wait();
-		mutex_wtcnt.signal();
+		if (writercount == 1) wrt.acquire();
+		mutex_wtcnt.release();
 
 		internalHashMap[key] = v;
 
-		mutex_wtcnt.wait();
+		mutex_wtcnt.acquire();
 		writercount--;
-		if (writercount == 0) wrt.signal();
-		mutex_wtcnt.signal();
+		if (writercount == 0) wrt.release();
+		mutex_wtcnt.release();
 	}
 
 	T *tryGet(unsigned int key) {
-		mutex_rdcnt.wait();
+		mutex_rdcnt.acquire();
 		readercount++;
 		if (readercount == 1) {
-			wrt.wait();
+			wrt.acquire();
 		}
-		mutex_rdcnt.signal();
+		mutex_rdcnt.release();
 
-		std::unordered_map::iterator ptr = internalHashMap.find(key);
+		typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
 		
-		mutex_rdcnt.wait();
+		mutex_rdcnt.acquire();
 		readercount--;
-		if (readercount == 0) wrt.signal();
-		mutex_rdcnt.signal();
+		if (readercount == 0) wrt.release();
+		mutex_rdcnt.release();
 		
 		return ptr == internalHashMap.end() ? 0 : ptr->second;
 	}

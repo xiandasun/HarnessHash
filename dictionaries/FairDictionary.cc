@@ -1,41 +1,41 @@
-#include "Semaphore.h"
+#include "SpinLock.h"
 #include <unordered_map>
 
 template<typename T> class FairDictionary {
-	Semaphore mutexEntry, mutexCounter, mutexAccess;
+	Spinlock mutexEntry, mutexCounter, mutexAccess;
 	unsigned int readercount;
 	
 	std::unordered_map<unsigned int, T *> internalHashMap;
-	Dictionary(Dictionary cont &);	// prevent copying
+	Dictionary(Dictionary const &);	// prevent copying
 	void operator =(Dictionary const &);
 
   public:
-	Dictionary() : mutexEntry(1), mutexCounter(1), mutexAccess(1), readercount(0) {};
+	Dictionary() : mutexEntry(), mutexCounter(), mutexAccess(), readercount(0) {};
 
 	void put(unsigned int key, T *v) {
-		mutexEntry.wait();
-		mutexAccess.wait();
-		mutexEntry.signal();	
+		mutexEntry.acquire();
+		mutexAccess.acquire();
+		mutexEntry.release();	
 
 		internalHashMap[key] = v;
 
-		mutexAccess.signal();
+		mutexAccess.release();
 	}
 
 	T *tryGet(unsigned int key) {
-		mutexEntry.wait();
-		mutexCounter.wait();
+		mutexEntry.acquire();
+		mutexCounter.acquire();
 		readercount++;
-		if (readercount == 1) mutexAccess.wait();
-		mutexCounter.signal();
-		mutexEntry.signal();
+		if (readercount == 1) mutexAccess.acquire();
+		mutexCounter.release();
+		mutexEntry.release();
 
-		std::unordered_map::iterator ptr = internalHashMap.find(key);
+		typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
 		
-		mutexCounter.wait();
+		mutexCounter.acquire();
 		readercount--;
-		if (readercount == 0) mutexAccess.signal();
-		mutexCounter.signal();
+		if (readercount == 0) mutexAccess.release();
+		mutexCounter.release();
 
 		return ptr == internalHashMap.end() ? 0 : ptr->second;
 	}

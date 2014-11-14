@@ -66,7 +66,7 @@ void affinity( pthread_t pthreadid, unsigned int tid ) {
 	int cpu;
 
 	enum { OFFSET = 4 };								// upper range of cores away from core 0
-	cpu = tid + OFFSET;
+	cpu = (tid + OFFSET) % 6;
 
 	CPU_SET( cpu, &mask );
 	int rc = pthread_setaffinity_np( pthreadid, sizeof(cpu_set_t), &mask );
@@ -83,11 +83,10 @@ void affinity( pthread_t pthreadid, unsigned int tid ) {
 // Read / Write freqency of elements
 
 static const unsigned int UNIVERSE_SIZE = 1000;
-static double CumulatedReadFrequency[UNIVERSE_SIZE];
-static double CumulatedWriteFrequency[UNIVERSE_SIZE];
+static unsigned int Index[UNIVERSE_SIZE * UNIVERSE_SIZE];
 
 static unsigned long x = 123456789, y = 362436069, z = 521288629;
-static unsigned long range = 100000000;
+static unsigned long range = UNIVERSE_SIZE * UNIVERSE_SIZE;
 
 // XorShift by George Marsaglia
 inline unsigned long xorshf96(void) {          //period 2^96-1
@@ -107,37 +106,23 @@ inline unsigned long xorshf96(void) {          //period 2^96-1
 // Approximate Zipf Distribute
 // More reads, more writes
 void generateZipfAccessPatterns() {
-	double sum = 0.0;
+	range = 0;
 	for (unsigned int i = 0; i < UNIVERSE_SIZE; i++) {
-		CumulatedReadFrequency[i] = 1 / ((double) i + 1.0);
-		sum += CumulatedReadFrequency[i];
-	}
-	
-	// cout << "\nsum=" << sum;
-	// double ratio = 1 / sum;
-	// cout << "\nratio=" << ratio << endl;
-	CumulatedReadFrequency[0] /= sum;
-	// cout << CumulatedReadFrequency[0] << endl;
-	for (unsigned int i = 1; i < UNIVERSE_SIZE; i++) {
-		CumulatedReadFrequency[i] = CumulatedReadFrequency[i - 1] + CumulatedReadFrequency[i] / sum;
-		CumulatedWriteFrequency[i] = CumulatedReadFrequency[i];
-		// cout << CumulatedReadFrequency[i] << endl;
+		for (unsigned int j = 0; j < UNIVERSE_SIZE / (i + 1); j++) {
+			Index[range] = i;
+			range++;
+		}
 	}
 } // generateAccessPatterns
 
 inline unsigned int nextReadKey() {
-	double r = ((double) xorshf96()) / ((double) range);
-	for (unsigned int i = 0; i < UNIVERSE_SIZE; i++)
-		if (r < CumulatedReadFrequency[i]) return i;
-	return UNIVERSE_SIZE - 1;
+	unsigned long r = xorshf96();
+	return Index[r];
 } // nextReadKey
 
 inline unsigned int nextWriteKey() {
-	return 0;
-	double r = ((double) xorshf96()) / ((double) range);
-	for (unsigned int i = 0; i < UNIVERSE_SIZE; i++)
-		if (r < CumulatedWriteFrequency[i]) return i;
-	return UNIVERSE_SIZE - 1;
+	unsigned r = xorshf96();
+	return Index[r];
 } // nextWriteKey
 
 //------------------------------------------------------------------------------
@@ -294,6 +279,10 @@ int main( int argc, char *argv[] ) {
 	Dictionary<Node> dictionary;									// only one global dictionary
 	
 	Writer::Initialize();
+
+	for (unsigned int i = 0; i < UNIVERSE_SIZE; i++) {
+		dictionary.put(i, Writer::entry[i]);
+	}
 
 	Reader *reader[Readers];
 	Writer *writer[Writers];

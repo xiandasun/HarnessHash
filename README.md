@@ -1,4 +1,4 @@
 HarnessHash
 ===========
 
-A harness program for know concurrent hash tables
+A harness program for know hash tables

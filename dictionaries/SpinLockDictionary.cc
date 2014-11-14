@@ -2,27 +2,27 @@
 #include <unordered_map>
 
 template<typename T> class Dictionary {
-	Spinlock lock;
-	
-	std::unordered_map<unsigned int, T *> internalHashMap;
-	Dictionary(Dictionary const &);	// prevent copying
-	void operator =(Dictionary const &);
+    Spinlock lock;
 
-  public:
-	Dictionary() {};
+    std::unordered_map<unsigned int, T *> internalHashMap;
+    Dictionary(Dictionary const &);	// prevent copying
+    void operator =(Dictionary const &);
 
-	void put(unsigned int key, T *v) {
-	  	lock.acquire();
-		internalHashMap[key] = v;
-		lock.release();
-	}
+    public:
+    Dictionary() {};
 
-	T *tryGet(unsigned int key) {
-		lock.acquire();
-		typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
-		lock.release();
-		return ptr == internalHashMap.end() ? 0 : ptr->second;
-	}
+    void put(unsigned int key, T *v) {
+        lock.acquire();
+        internalHashMap[key] = v;
+        lock.release();
+    }
+
+    T *tryGet(unsigned int key) {
+        lock.acquire();
+        typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
+        lock.release();
+        return ptr == internalHashMap.end() ? 0 : ptr->second;
+    }
 };
 
 // Local Variables: //

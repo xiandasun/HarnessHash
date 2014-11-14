@@ -15,35 +15,35 @@ typedef uintptr_t TYPE;
 class Semaphore {
     volatile TYPE S
 #if defined( __i386 ) || defined( __x86_64 )
-	__attribute__(( aligned (128) ));		// Intel recommendation
+        __attribute__(( aligned (128) ));		// Intel recommendation
 #elif defined( __sparc )
-	CALIGN;
+    CALIGN;
 #else
-    #error unsupported architecture
+#error unsupported architecture
 #endif
     public:
-	void wait() {
-		enum { SPIN_START = 4, SPIN_END = 64 * 1024, };
-		unsigned int spin = SPIN_START;
+    void wait() {
+        enum { SPIN_START = 4, SPIN_END = 64 * 1024, };
+        unsigned int spin = SPIN_START;
 
-		int i = S;
-		while ((S == 0) || !__sync_bool_compare_and_swap(&S, i, i - 1)) {
-			for (unsigned int w = 0; w < spin; w++) Pause();
-			spin += spin;
-			if (spin > SPIN_END) spin = SPIN_START;
-			Pause();	
-			i = S;
-		} // while
-	} // Semaphore::wait
+        int i = S;
+        while ((S == 0) || !__sync_bool_compare_and_swap(&S, i, i - 1)) {
+            for (unsigned int w = 0; w < spin; w++) Pause();
+            spin += spin;
+            if (spin > SPIN_END) spin = SPIN_START;
+            Pause();	
+            i = S;
+        } // while
+    } // Semaphore::wait
 
-	void signal() {
-		int i = S;
-		while (!__sync_bool_compare_and_swap(&S, i, i + 1)) {
-			i = S;
-		}
-    	} // Semaphore::signal
+    void signal() {
+        int i = S;
+        while (!__sync_bool_compare_and_swap(&S, i, i + 1)) {
+            i = S;
+        }
+    } // Semaphore::signal
 
-    	Semaphore(int init) : S( init ) {}
+    Semaphore(int init) : S( init ) {}
 }; // Semaphore
 
 // Local Variables: //

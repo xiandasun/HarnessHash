@@ -2,39 +2,39 @@
 #include <unordered_map>
 
 template<typename T> class ReaderPrioryDictionary {
-	Spinlock wrt, mutex;
-	unsigned int readercount;
-	
-	std::unordered_map<unsigned int, T *> internalHashMap;
-	Dictionary(Dictionary const &);	// prevent copying
-	void operator =(Dictionary const &);
+    Spinlock wrt, mutex;
+    unsigned int readercount;
 
-  public:
-	Dictionary() : wrt(), mutex(), readercount(0) {};
+    std::unordered_map<unsigned int, T *> internalHashMap;
+    Dictionary(Dictionary const &);	// prevent copying
+    void operator =(Dictionary const &);
 
-	void put(unsigned int key, T *v) {
-		wrt.acquire();
-		internalHashMap[key] = v;
-		wrt.release();
-	}
+    public:
+    Dictionary() : wrt(), mutex(), readercount(0) {};
 
-	T *tryGet(unsigned int key) {
-		mutex.acquire();
-		readercount++;
-		if (readercount == 1) {
-			wrt.acquire();
-		}
-		mutex.release();
+    void put(unsigned int key, T *v) {
+        wrt.acquire();
+        internalHashMap[key] = v;
+        wrt.release();
+    }
 
-		typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
-		
-		mutex.acquire();
-		readercount--;
-		if (readercount == 0) wrt.release();
-		mutex.release();
-		
-		return ptr == internalHashMap.end() ? 0 : ptr->second;
-	}
+    T *tryGet(unsigned int key) {
+        mutex.acquire();
+        readercount++;
+        if (readercount == 1) {
+            wrt.acquire();
+        }
+        mutex.release();
+
+        typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
+
+        mutex.acquire();
+        readercount--;
+        if (readercount == 0) wrt.release();
+        mutex.release();
+
+        return ptr == internalHashMap.end() ? 0 : ptr->second;
+    }
 };
 
 // Local Variables: //

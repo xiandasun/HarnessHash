@@ -2,43 +2,43 @@
 #include <unordered_map>
 
 template<typename T> class FairDictionary {
-	Spinlock mutexEntry, mutexCounter, mutexAccess;
-	unsigned int readercount;
-	
-	std::unordered_map<unsigned int, T *> internalHashMap;
-	Dictionary(Dictionary const &);	// prevent copying
-	void operator =(Dictionary const &);
+    Spinlock mutexEntry, mutexCounter, mutexAccess;
+    unsigned int readercount;
 
-  public:
-	Dictionary() : mutexEntry(), mutexCounter(), mutexAccess(), readercount(0) {};
+    std::unordered_map<unsigned int, T *> internalHashMap;
+    Dictionary(Dictionary const &);	// prevent copying
+    void operator =(Dictionary const &);
 
-	void put(unsigned int key, T *v) {
-		mutexEntry.acquire();
-		mutexAccess.acquire();
-		mutexEntry.release();	
+    public:
+    Dictionary() : mutexEntry(), mutexCounter(), mutexAccess(), readercount(0) {};
 
-		internalHashMap[key] = v;
+    void put(unsigned int key, T *v) {
+        mutexEntry.acquire();
+        mutexAccess.acquire();
+        mutexEntry.release();	
 
-		mutexAccess.release();
-	}
+        internalHashMap[key] = v;
 
-	T *tryGet(unsigned int key) {
-		mutexEntry.acquire();
-		mutexCounter.acquire();
-		readercount++;
-		if (readercount == 1) mutexAccess.acquire();
-		mutexCounter.release();
-		mutexEntry.release();
+        mutexAccess.release();
+    }
 
-		typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
-		
-		mutexCounter.acquire();
-		readercount--;
-		if (readercount == 0) mutexAccess.release();
-		mutexCounter.release();
+    T *tryGet(unsigned int key) {
+        mutexEntry.acquire();
+        mutexCounter.acquire();
+        readercount++;
+        if (readercount == 1) mutexAccess.acquire();
+        mutexCounter.release();
+        mutexEntry.release();
 
-		return ptr == internalHashMap.end() ? 0 : ptr->second;
-	}
+        typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
+
+        mutexCounter.acquire();
+        readercount--;
+        if (readercount == 0) mutexAccess.release();
+        mutexCounter.release();
+
+        return ptr == internalHashMap.end() ? 0 : ptr->second;
+    }
 };
 
 // Local Variables: //

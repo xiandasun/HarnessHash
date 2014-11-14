@@ -66,7 +66,7 @@ void affinity( pthread_t pthreadid, unsigned int tid ) {
 	int cpu;
 
 	enum { OFFSET = 4 };								// upper range of cores away from core 0
-	cpu = (tid + OFFSET) % 6;
+	cpu = tid + OFFSET;
 
 	CPU_SET( cpu, &mask );
 	int rc = pthread_setaffinity_np( pthreadid, sizeof(cpu_set_t), &mask );

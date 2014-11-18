@@ -273,7 +273,7 @@ usage:
             exit( EXIT_FAILURE );
     } // switch
 
-    cout << Readers << " " <<  Writers << " " << Time << " ";
+    cout << Readers << "\t" <<  Writers << "\t" << Time << "\t";
 
     // start up
 
@@ -350,7 +350,7 @@ usage:
     double stdReads = sqrt( sum / Readers );
 
     cout << fixed << setprecision(1);
-    cout << totalReads << " " << totalWrites << " " << getf << " " << avgReads << " " << stdReads / avgReads * 100 << "% " <<  avgWrites << " " << stdWrites / avgWrites * 100 << "%" << endl;
+    cout << totalReads << "\t" << totalWrites << "\t" << getf << "\t" << avgReads << "\t" << stdReads / avgReads * 100 << "%\t" <<  avgWrites << "\t" << stdWrites / avgWrites * 100 << "%" << endl;
 
     //	cout << endl;
     //	malloc_stats();

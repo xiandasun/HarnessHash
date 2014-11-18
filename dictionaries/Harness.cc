@@ -83,7 +83,8 @@ void affinity( pthread_t pthreadid, unsigned int tid ) {
 // Read / Write freqency of elements
 
 static const unsigned int UNIVERSE_SIZE = 1000;
-static unsigned int Index[UNIVERSE_SIZE * UNIVERSE_SIZE];
+static unsigned int rIndex[UNIVERSE_SIZE * UNIVERSE_SIZE];
+static unsigned int wIndex[UNIVERSE_SIZE * UNIVERSE_SIZE];
 
 static unsigned long x = 123456789, y = 362436069, z = 521288629;
 static unsigned long range = UNIVERSE_SIZE * UNIVERSE_SIZE;
@@ -109,7 +110,8 @@ void generateZipfAccessPatterns() {
     range = 0;
     for (unsigned int i = 0; i < UNIVERSE_SIZE; i++) {
         for (unsigned int j = 0; j < UNIVERSE_SIZE / (i + 1); j++) {
-            Index[range] = i;
+            rIndex[range] = i;
+			wIndex[range] = UNIVERSE_SIZE - 1 - i;
             range++;
         }
     }
@@ -117,12 +119,12 @@ void generateZipfAccessPatterns() {
 
 inline unsigned int nextReadKey() {
     unsigned long r = xorshf96();
-    return Index[r];
+    return rIndex[r];
 } // nextReadKey
 
 inline unsigned int nextWriteKey() {
-    unsigned r = xorshf96();
-    return Index[r];
+    unsigned w = xorshf96();
+    return wIndex[w];
 } // nextWriteKey
 
 //------------------------------------------------------------------------------

@@ -36,7 +36,7 @@ rm -rf core
 
 T=1
 while [ ${T} -le ${N} ] ; do
-    ./a.out ${Time} ${T} ${T}
+    ./a.out ${Time} ${T} 1
     if [ -f core ] ; then
 	echo core generated for ${Time} ${T}
 	break

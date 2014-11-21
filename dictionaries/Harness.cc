@@ -158,6 +158,10 @@ struct Reader {
     static void *main( void *arg ) {
         Reader &This = *(Reader *)arg;					// "This" is Reader object
 
+#ifdef USING_URCU_LIB
+	rcu_register_thread();
+#endif	
+
         for ( volatile unsigned int i = 0; i < This.tid * 100; i += 1 ); // random start
 
         for ( ;; ) {
@@ -165,11 +169,16 @@ struct Reader {
             unsigned int key = nextReadKey();
             Node *node = This.dictionary.tryGet( key );			// get arbitrary node
             if ( node != 0 ) {
-                This.entries += 1;
+                for (unsigned testi = 0; testi < 1000; testi++);
+		This.entries += 1;
             } else {
                 This.getf += 1;							// count get failures
             } // if
         } // for
+
+#ifdef USING_URCU_LIB	
+	rcu_unregister_thread();
+#endif
         return 0;
     } // Reader::main
 
@@ -213,6 +222,7 @@ struct Writer {
         for ( ;; ) {
             if ( This.stop != 0 ) break;					// done experiment ?
             unsigned int key = nextWriteKey();
+            for (unsigned testi = 0; testi < 1000; testi++);
             This.dictionary.put( key, entry[key] );				// put arbitrary node
             This.entries += 1;
         } // for

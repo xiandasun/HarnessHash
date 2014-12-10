@@ -1,30 +1,30 @@
 #include "SpinLock.h"
 #include <unordered_map>
 
-template<typename T> class Dictionary {
+template<typename K, typename T> class Dictionary : public std::unordered_map<K, T *> {
     Spinlock lock;
 
-    std::unordered_map<unsigned int, T *> internalHashMap;
-    Dictionary(Dictionary const &);	// prevent copying
-    void operator =(Dictionary const &);
+    Dictionary( Dictionary const & );			// prevent copying
+    void operator=( Dictionary const & );
+  public:
+    Dictionary( typename std::unordered_map<K, T *>::size_type n ) /* : std::unordered_map<K, T *>( n ) */ {};
 
-    public:
-    Dictionary() {};
-
-    void put(unsigned int key, T *v) {
+    void put( K key, T *v ) {
         lock.acquire();
-        internalHashMap[key] = v;
+        (*this)[key] = v;
         lock.release();
-    }
+    } // Dictionary::put
 
-    T *tryGet(unsigned int key) {
+    T *tryGet( K key ) {
         lock.acquire();
-        typename std::unordered_map<unsigned int, T *>::iterator ptr = internalHashMap.find(key);
+        T *ret = (*this)[key];
         lock.release();
-        return ptr == internalHashMap.end() ? 0 : ptr->second;
-    }
-};
+        return ret;
+    } // Dictionary::tryGet
+}; // Dictionary
+
+
 
 // Local Variables: //
-// compile-command: "g++ -Wall -O3 -DNDEBUG -fno-reorder-functions -DPIN -DDictionary=SpinLockDictionary Harness.cc -lpthread -lm" //
+// compile-command: "g++ -std=c++11 -Wall -O3 -DNDEBUG -fno-reorder-functions -DPIN -DDictionary=SpinLockDictionary Harness.cc -lpthread -lm" //
 // End: //
